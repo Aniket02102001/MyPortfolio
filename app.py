@@ -17,7 +17,7 @@ def sendemail():
         message = request.form['message']
 
         # Set your credentials
-        yourEmail = "suraj@geeksforgeeks.org"
+        yourEmail = "aniketsahu02102001@gmail.com"
         yourPassword = "########"
 
         # Logging in to our email account
@@ -32,7 +32,7 @@ def sendemail():
             msg.set_content(f"First Name : {name}\nEmail : {email}\nSubject : {subject}\nMessage : {message}")
             msg['To'] = yourEmail  # Send the email to yourself
             msg['From'] = yourEmail
-            msg['Subject'] = subject
+            msg['Subject'] = subject 
 
             # Send the message via our own SMTP server.
             server.send_message(msg)
