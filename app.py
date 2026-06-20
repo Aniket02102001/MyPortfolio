@@ -21,8 +21,8 @@ def sendemail():
     message = request.form.get("message", "")
 
     # For local testing in VS Code
-    yourEmail = os.getenv("EMAIL_USER")
-    yourPassword = os.getenv("EMAIL_PASSWORD")
+    yourEmail = os.getenv("yourEmail")
+    yourPassword = os.getenv("yourPassword")
    
 
     if not yourEmail or not yourPassword:
