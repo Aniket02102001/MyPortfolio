@@ -22,8 +22,8 @@ def sendemail():
     message = request.form.get("message", "").strip()
 
     # Render Environment Variables
-    yourEmail = os.getenv("EMAIL_USER")
-    yourPassword = os.getenv("EMAIL_PASSWORD")
+    yourEmail = os.getenv("yourEmail")
+    yourPassword = os.getenv("yourPassword")
 
     print("EMAIL_USER:", yourEmail)
     print("EMAIL_PASSWORD exists:", bool(yourPassword))
