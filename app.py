@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect
 from email.message import EmailMessage
 import smtplib
+import ssl
 import os
 
 app = Flask(__name__)
@@ -15,33 +16,35 @@ def index():
 @app.route("/sendemail/", methods=["POST"])
 def sendemail():
 
-    name = request.form.get("name", "")
-    subject = request.form.get("Subject", "Portfolio Contact Form")
-    email = request.form.get("_replyto", "")
-    message = request.form.get("message", "")
+    name = request.form.get("name", "").strip()
+    subject = request.form.get("Subject", "Portfolio Contact Form").strip()
+    sender_email = request.form.get("_replyto", "").strip()
+    message = request.form.get("message", "").strip()
 
-    # For local testing in VS Code
-    yourEmail = os.getenv("yourEmail")
-    yourPassword = os.getenv("yourPassword")
-   
+    # Render Environment Variables
+    yourEmail = os.getenv("EMAIL_USER")
+    yourPassword = os.getenv("EMAIL_PASSWORD")
+
+    print("EMAIL_USER:", yourEmail)
+    print("EMAIL_PASSWORD exists:", bool(yourPassword))
 
     if not yourEmail or not yourPassword:
-        return "Missing email credentials", 500
-
-    server = None
+        return "Missing email credentials. Check Render Environment Variables.", 500
 
     try:
-        # Create email
+        # Create Email
         msg = EmailMessage()
         msg["Subject"] = subject
         msg["From"] = yourEmail
         msg["To"] = yourEmail
-        msg["Reply-To"] = email
+        msg["Reply-To"] = sender_email
 
         msg.set_content(
             f"""
+New Portfolio Contact Form Submission
+
 Name: {name}
-Email: {email}
+Email: {sender_email}
 
 Message:
 {message}
@@ -50,18 +53,20 @@ Message:
 
         print("Connecting to Gmail SMTP...")
 
-        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=30)
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
+        context = ssl.create_default_context()
 
-        print("Logging in...")
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as server:
+            server.ehlo()
+            server.starttls(context=context)
+            server.ehlo()
 
-        server.login(yourEmail, yourPassword)
+            print("Logging into Gmail...")
 
-        print("Sending email...")
+            server.login(yourEmail, yourPassword)
 
-        server.send_message(msg)
+            print("Sending email...")
+
+            server.send_message(msg)
 
         print("✅ Email sent successfully!")
 
@@ -71,12 +76,19 @@ Message:
         print("❌ Error:", str(e))
         return f"Error sending email: {str(e)}", 500
 
-    finally:
-        if server:
-            try:
-                server.quit()
-            except:
-                pass
+
+# ---------------- TEST SMTP ----------------
+@app.route("/smtp-test")
+def smtp_test():
+    try:
+        import socket
+
+        socket.create_connection(("smtp.gmail.com", 587), timeout=10)
+
+        return "SMTP connection successful"
+
+    except Exception as e:
+        return f"SMTP failed: {str(e)}"
 
 
 # ---------------- RUN APP ----------------
