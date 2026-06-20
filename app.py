@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, url_for, redirect
 from email.mime.text import MIMEText 
 import smtplib 
 from email.message import EmailMessage 
+import os
 app = Flask(__name__) 
 
 @app.route("/") 
@@ -17,9 +18,10 @@ def sendemail():
         message = request.form['message']
 
         # Set your credentials
-        yourEmail = "aniketsahu02102001@gmail.com"
-        yourPassword = "########"
+        
 
+        yourEmail = os.getenv("EMAIL_USER")
+        yourPassword = os.getenv("EMAIL_PASSWORD")
         # Logging in to our email account
         try:
             server = smtplib.SMTP('smtp.gmail.com', 587)
