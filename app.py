@@ -15,60 +15,70 @@ def index():
 @app.route("/sendemail/", methods=["POST"])
 def sendemail():
 
-    # Get form data safely
-    name = request.form.get("name")
-    subject = request.form.get("Subject")
-    email = request.form.get("_replyto")
-    message = request.form.get("message")
+    name = request.form.get("name", "")
+    subject = request.form.get("Subject", "Portfolio Contact Form")
+    email = request.form.get("_replyto", "")
+    message = request.form.get("message", "")
 
-    # Get environment variables from Render
+    # For local testing in VS Code
     yourEmail = os.getenv("EMAIL_USER")
     yourPassword = os.getenv("EMAIL_PASSWORD")
+   
 
-    # Check if credentials exist
     if not yourEmail or not yourPassword:
-        print("❌ Missing EMAIL_USER or EMAIL_PASSWORD in environment variables")
-        return redirect("/")
+        return "Missing email credentials", 500
+
+    server = None
 
     try:
-        # Create email message
+        # Create email
         msg = EmailMessage()
-        msg.set_content(
-            f"Name: {name}\n"
-            f"Email: {email}\n"
-            f"Subject: {subject}\n"
-            f"Message: {message}"
-        )
-
         msg["Subject"] = subject
         msg["From"] = yourEmail
-        msg["To"] = yourEmail   # send to yourself
+        msg["To"] = yourEmail
+        msg["Reply-To"] = email
 
-        # Connect to Gmail SMTP server
-        server = smtplib.SMTP("smtp.gmail.com", 587)
+        msg.set_content(
+            f"""
+Name: {name}
+Email: {email}
+
+Message:
+{message}
+"""
+        )
+
+        print("Connecting to Gmail SMTP...")
+
+        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=30)
         server.ehlo()
         server.starttls()
+        server.ehlo()
 
-        # Login
+        print("Logging in...")
+
         server.login(yourEmail, yourPassword)
 
-        # Send email
+        print("Sending email...")
+
         server.send_message(msg)
 
-        print("✅ Email Sent Successfully")
+        print("✅ Email sent successfully!")
+
+        return redirect("/")
 
     except Exception as e:
-        print("❌ Failed to send email:", e)
+        print("❌ Error:", str(e))
+        return f"Error sending email: {str(e)}", 500
 
     finally:
-        try:
-            server.quit()
-        except:
-            pass
+        if server:
+            try:
+                server.quit()
+            except:
+                pass
 
-    return redirect("/")
 
-
-# ---------------- RUN APP (IMPORTANT FOR RENDER) ----------------
+# ---------------- RUN APP ----------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    app.run(debug=True)
