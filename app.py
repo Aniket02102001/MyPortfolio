@@ -1,49 +1,74 @@
-from flask import Flask, render_template, request, url_for, redirect 
-from email.mime.text import MIMEText 
-import smtplib 
-from email.message import EmailMessage 
+from flask import Flask, render_template, request, redirect
+from email.message import EmailMessage
+import smtplib
 import os
-app = Flask(__name__) 
 
-@app.route("/") 
-def index(): 
-	return render_template("index.html") 
+app = Flask(__name__)
 
-@app.route("/sendemail/", methods=['POST'])
+# ---------------- HOME PAGE ----------------
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+# ---------------- SEND EMAIL ----------------
+@app.route("/sendemail/", methods=["POST"])
 def sendemail():
-    if request.method == "POST":
-        name = request.form['name']
-        subject = request.form['Subject']
-        email = request.form['_replyto']
-        message = request.form['message']
 
-        # Set your credentials
-        
+    # Get form data safely
+    name = request.form.get("name")
+    subject = request.form.get("Subject")
+    email = request.form.get("_replyto")
+    message = request.form.get("message")
 
-        yourEmail = os.getenv("EMAIL_USER")
-        yourPassword = os.getenv("EMAIL_PASSWORD")
-        # Logging in to our email account
+    # Get environment variables from Render
+    yourEmail = os.getenv("EMAIL_USER")
+    yourPassword = os.getenv("EMAIL_PASSWORD")
+
+    # Check if credentials exist
+    if not yourEmail or not yourPassword:
+        print("❌ Missing EMAIL_USER or EMAIL_PASSWORD in environment variables")
+        return redirect("/")
+
+    try:
+        # Create email message
+        msg = EmailMessage()
+        msg.set_content(
+            f"Name: {name}\n"
+            f"Email: {email}\n"
+            f"Subject: {subject}\n"
+            f"Message: {message}"
+        )
+
+        msg["Subject"] = subject
+        msg["From"] = yourEmail
+        msg["To"] = yourEmail   # send to yourself
+
+        # Connect to Gmail SMTP server
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.ehlo()
+        server.starttls()
+
+        # Login
+        server.login(yourEmail, yourPassword)
+
+        # Send email
+        server.send_message(msg)
+
+        print("✅ Email Sent Successfully")
+
+    except Exception as e:
+        print("❌ Failed to send email:", e)
+
+    finally:
         try:
-            server = smtplib.SMTP('smtp.gmail.com', 587)
-            server.ehlo()
-            server.starttls()
-            server.login(yourEmail, yourPassword)
-
-            # Sender's and Receiver's email address
-            msg = EmailMessage()
-            msg.set_content(f"First Name : {name}\nEmail : {email}\nSubject : {subject}\nMessage : {message}")
-            msg['To'] = yourEmail  # Send the email to yourself
-            msg['From'] = yourEmail
-            msg['Subject'] = subject 
-
-            # Send the message via our own SMTP server.
-            server.send_message(msg)
-            print("Email Sent")
             server.quit()
-        except Exception as e:
-            print(f"Failed to Send Email: {e}")
-            
-    return redirect('/')
+        except:
+            pass
 
-if __name__ == "__main__": 
-	app.run(debug=True)
+    return redirect("/")
+
+
+# ---------------- RUN APP (IMPORTANT FOR RENDER) ----------------
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
